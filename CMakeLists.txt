@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.8)
+project( a.out )
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( a.out rgbTohsi.cc )
+target_link_libraries( a.out ${OpenCV_LIBS} )

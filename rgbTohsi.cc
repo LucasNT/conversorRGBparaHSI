@@ -31,8 +31,9 @@ cv::Mat RGBToHSI( cv::Mat &img ){
             if(pi[0] > pi[1])
                 vecHSI[0] = 360 - vecHSI[0];
     });
-    /*
-    auto aux = hsi.at<cv::Vec3d>(0,0);
+    auto aux = hsi.at<cv::Vec3d>(451,929);
+    std::cout << "(929,451) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+/*    auto aux = hsi.at<cv::Vec3d>(0,0);
     std::cout << "(0,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
 
     aux = hsi.at<cv::Vec3d>(1,0);
@@ -43,9 +44,64 @@ cv::Mat RGBToHSI( cv::Mat &img ){
 
     aux = hsi.at<cv::Vec3d>(3,0);
     std::cout << "(3,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
-    std::cout << "\n";
-    */
+    std::cout << "\n";*/
 
+    return hsi;
+}
+
+cv::Mat RGBToHSI2( cv::Mat &img){
+    cv::Mat hsi(img.size() , CV_64FC3);
+    img.forEach<cv::Vec3b>( [&] (cv::Vec3b &pi , const int *position) -> void {
+            auto &vecHSI = hsi.at<cv::Vec3d>(position[0] , position[1]);
+            double r,g,b;
+            double min , max;
+            double delta;
+            b = pi[0]/255.0;
+            g = pi[1]/255.0;
+            r = pi[2]/255.0;
+            vecHSI[2] = (r+g+b) / 3.0;
+            min = std::min(r , std::min(g,b));
+            max = std::max(r , std::max(g,b));
+            delta = max - min;
+            if(vecHSI[2])
+                vecHSI[1] = 1-( min /vecHSI[2] );
+            else
+                vecHSI[1] = 0;
+            vecHSI[1] = vecHSI[1] < 1e-5 ? 0 : vecHSI[1] > 0.99999 ? 1 : vecHSI[1];
+            double rg = r - g;
+            double rb = r - b;
+            if(delta == 0){
+                vecHSI[0] = 0;
+            }else{
+                if(max == r){
+                    vecHSI[0] = (((g-b)/delta));
+                    int aux = (int) vecHSI[0];
+                    vecHSI[0] = 60 * ((aux % 6) + vecHSI[0] - aux);
+                    if(vecHSI[0] < 0){
+                        vecHSI[0] = 360 + vecHSI[0];
+                    }
+
+                }else if(max == g){
+                    vecHSI[0] = 60 * (((b-r)/delta) + 2);
+                }else{
+                    vecHSI[0] = 60 * (((r-g)/delta) + 4);
+                }
+            }
+    });
+    auto aux = hsi.at<cv::Vec3d>(451,929);
+    std::cout << "(929,451) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+/*    auto aux = hsi.at<cv::Vec3d>(0,0);
+    std::cout << "(0,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+
+    aux = hsi.at<cv::Vec3d>(1,0);
+    std::cout << "(1,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+
+    aux = hsi.at<cv::Vec3d>(2,0);
+    std::cout << "(2,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+
+    aux = hsi.at<cv::Vec3d>(3,0);
+    std::cout << "(3,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+    std::cout << "\n";*/
     return hsi;
 }
 
@@ -88,13 +144,13 @@ template< class T>
 void compareTwoMat(cv::Mat &img1 , cv::Mat img2){
     std::atomic<int> qtdErro(0);
     unsigned int difSum = 0;
-    uint32_t sumElemtDiff = 0;
+    uint64_t sumElemtDiff = 0;
     img1.forEach<T>([&] (T &ponto , const int *position) -> void {
         auto aux =  img2.at<T>(position[0] , position[1]);
         if(aux != ponto){
             auto resu = aux - ponto;
-            int32_t soma1 = 0;
-            int32_t soma2 = 0;
+            int64_t soma1 = 0;
+            int64_t soma2 = 0;
             for(int i = 0 ; i < resu.rows ; i++){
                 difSum += resu[i] >= 0 ? resu[i] : -resu[i];
                 soma1 += aux[i];
@@ -104,12 +160,10 @@ void compareTwoMat(cv::Mat &img1 , cv::Mat img2){
             qtdErro++;
         }
     });
-    uint32_t total = (img2.rows * img2.cols);
+    uint64_t total = (img2.rows * img2.cols);
     std::cout << qtdErro << " cores erradas de " << total << "\n";
     std::cout << (qtdErro/((double) total) * 100) << "%\n";
     std::cout << "Média do Erro: " << (difSum/(double)qtdErro) << "\n";
-    std::cout << difSum << "\n";
-    std::cout << sumElemtDiff << "\n";
 }
 
 
@@ -140,8 +194,14 @@ int main (int argc , char* argv[]){
     */
 
     cv::Mat hsi = RGBToHSI(image);
+    cv::Mat hsi2 = RGBToHSI2(image);
     cv::Mat rgb = HSIToRGB(hsi);
+    cv::Mat rgb2 = HSIToRGB(hsi2);
     compareTwoMat<cv::Vec3b>(rgb , image);
+    compareTwoMat<cv::Vec3b>(rgb2 , image);
+    cv::imshow("hsi" , rgb);
+    cv::imshow("hsi2" , rgb2);
+    cv::imshow("original" , image);
     cv::waitKey();
 
     return 0;

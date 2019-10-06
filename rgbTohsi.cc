@@ -108,35 +108,51 @@ cv::Mat RGBToHSI2( cv::Mat &img){
 cv::Mat HSIToRGB(cv::Mat &img){
     cv::Mat rgb(img.size() , CV_8UC3);
     img.forEach<cv::Vec3d>( [&] (cv::Vec3d &pixel , const int *position) -> void {
-        cv::Vec3b &vec = rgb.at<cv::Vec3b>(position[0] , position[1]);
-        if(pixel[0] <= 120){
-            vec[0] = pixel[2] * (1 - pixel[1]) * 255;
-            vec[2] = pixel[2] * ( 1 + ((pixel[1] * cosDegree(pixel[0])) / cosDegree(60 - pixel[0]))) * 255;
-            vec[1] = 3 * pixel[2] * 255 - vec[2] - vec[0];
-        }else if(pixel[0] <= 240){
-            vec[2] = pixel[2] * (1 - pixel[1]) * 255;
-            vec[1] = pixel[2] * ( 1 + ((pixel[1] * cosDegree(pixel[0] - 120)) / cosDegree(180 - pixel[0])))*255;
-            vec[0] = 3 * pixel[2] * 255 - vec[2] - vec[1];
-        }else {
-            vec[1] = pixel[2] * (1 - pixel[1]) * 255;
-            vec[0] = pixel[2] * ( 1 + ((pixel[1] * cosDegree(pixel[0] - 240)) / cosDegree(300 - pixel[0]))) * 255;
-            vec[2] = 3 * pixel[2] * 255 - vec[1] - vec[0];
-        }
+            cv::Vec3b &vec = rgb.at<cv::Vec3b>(position[0] , position[1]);
+            double Hi = pixel[0] / 60;
+            int aux =static_cast<int>(Hi);
+            double z = (aux % 2 -1) + (Hi - aux);
+            if(z < 0){
+                z = 1 + z;
+            }else{
+                z = 1 - z;
+            }
+            double c = 3 * pixel[2] * pixel[1] / (1 + z);
+            double x = c * z;
+            double m = pixel[2] * (1 - pixel[1]);
+            double auxColor[3];
+            if(Hi <= 1){
+                auxColor[0] = 0;
+                auxColor[1] = x;
+                auxColor[2] = c;
+            }else if(Hi <= 2){
+                auxColor[0] = 0;
+                auxColor[1] = c;
+                auxColor[2] = x;
+            }else if(Hi <= 3){
+                auxColor[0] = x;
+                auxColor[1] = c;
+                auxColor[2] = 0;
+            }else if(Hi <= 4){
+                auxColor[0] = c;
+                auxColor[1] = x;
+                auxColor[2] = 0;
+            }else if(Hi <= 5){
+                auxColor[0] = c;
+                auxColor[1] = 0;
+                auxColor[2] = x;
+            }else{
+                auxColor[0] = x;
+                auxColor[1] = 0;
+                auxColor[2] = c;
+            }
+            auxColor[0] += m;
+            auxColor[1] += m;
+            auxColor[2] += m;
+            vec[0] = auxColor[0] * 255;
+            vec[1] = auxColor[1] * 255;
+            vec[2] = auxColor[2] * 255;
     });
-    /*
-    auto aux = rgb.at<cv::Vec3b>(0,0);
-    std::cout << "(0,0) -> " << (unsigned int)aux[0] << " " << (unsigned int)aux[1] << " " << (unsigned int)aux[2] << "\n";
-
-    aux = rgb.at<cv::Vec3b>(1,0);
-    std::cout << "(1,0) -> " << (unsigned int)aux[0] << " " << (unsigned int)aux[1] << " " << (unsigned int)aux[2] << "\n";
-
-    aux = rgb.at<cv::Vec3b>(2,0);
-    std::cout << "(2,0) -> " << (unsigned int)aux[0] << " " << (unsigned int)aux[1] << " " << (unsigned int)aux[2] << "\n";
-
-    aux = rgb.at<cv::Vec3b>(3,0);
-    std::cout << "(3,0) -> " << (unsigned int)aux[0] << " " << (unsigned int)aux[1] << " " << (unsigned int)aux[2] << "\n";
-    std::cout << "\n";
-    */
     return rgb;
 }
 

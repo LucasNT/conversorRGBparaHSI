@@ -11,6 +11,10 @@ double cosDegree ( double degree ){
     return std::cos(degree * 3.1415926535897 / 180);
 }
 
+/*
+ * Usei o algoritmo desse site
+ * https://www.imageeprocessing.com/2013/05/converting-rgb-image-to-hsi.html
+ */
 cv::Mat RGBToHSI( cv::Mat &img ){
     cv::Mat hsi(img.size() , CV_64FC3);
     img.forEach<cv::Vec3b>( [&] (cv::Vec3b &pi , const int *position) -> void {
@@ -31,8 +35,8 @@ cv::Mat RGBToHSI( cv::Mat &img ){
             if(pi[0] > pi[1])
                 vecHSI[0] = 360 - vecHSI[0];
     });
-    auto aux = hsi.at<cv::Vec3d>(451,929);
-    std::cout << "(929,451) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+    auto aux = hsi.at<cv::Vec3d>(32,693);
+    std::cout << "(32,693) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
 /*    auto aux = hsi.at<cv::Vec3d>(0,0);
     std::cout << "(0,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
 
@@ -49,8 +53,14 @@ cv::Mat RGBToHSI( cv::Mat &img ){
     return hsi;
 }
 
+/*
+ * Usei o algoritmo desse site
+ * https://www.vocal.com/video/rgb-and-hsvhsihsl-color-space-conversion/
+ */
 cv::Mat RGBToHSI2( cv::Mat &img){
     cv::Mat hsi(img.size() , CV_64FC3);
+    // essa função faz a execução da função passada de forma paralela, executando para cada ponto da imagem essa função
+    // e fazendo a distribuição de carga de trabalho para as threads.
     img.forEach<cv::Vec3b>( [&] (cv::Vec3b &pi , const int *position) -> void {
             auto &vecHSI = hsi.at<cv::Vec3d>(position[0] , position[1]);
             double r,g,b;
@@ -88,8 +98,8 @@ cv::Mat RGBToHSI2( cv::Mat &img){
                 }
             }
     });
-    auto aux = hsi.at<cv::Vec3d>(451,929);
-    std::cout << "(929,451) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
+    auto aux = hsi.at<cv::Vec3d>(32,693);
+    std::cout << "(32,693) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
 /*    auto aux = hsi.at<cv::Vec3d>(0,0);
     std::cout << "(0,0) -> " << aux[0] << " " << aux[1] << " " << aux[2] << "\n";
 
@@ -105,6 +115,10 @@ cv::Mat RGBToHSI2( cv::Mat &img){
     return hsi;
 }
 
+/*
+ * Usei o algoritmo da wikipedia
+ * https://en.wikipedia.org/wiki/HSL_and_HSV#HSI_to_RGB
+ */
 cv::Mat HSIToRGB(cv::Mat &img){
     cv::Mat rgb(img.size() , CV_8UC3);
     img.forEach<cv::Vec3d>( [&] (cv::Vec3d &pixel , const int *position) -> void {
@@ -149,10 +163,23 @@ cv::Mat HSIToRGB(cv::Mat &img){
             auxColor[0] += m;
             auxColor[1] += m;
             auxColor[2] += m;
+            for(int i = 0 ; i < 3 ;i++){
+                if(auxColor[i] > 1)
+                    auxColor[i] = 1;
+                else if(auxColor[i] < 0)
+                    auxColor[i] = 0;
+            }
             vec[0] = auxColor[0] * 255;
             vec[1] = auxColor[1] * 255;
             vec[2] = auxColor[2] * 255;
+/*            if(position[0] == 32 && position[1] == 693){
+                std::cout << pixel[0] << " , " << pixel[1] << " , " << pixel[2];
+                std::cout <<  "\nHi " <<  Hi << " , z " << z << " c " <<c  << " x " << x << " m " << m << "\n";
+                std::cout << "(" << auxColor[2] << "," << auxColor[1] <<"," << auxColor[0] << ")\n";
+            }*/
     });
+    auto aux2 = rgb.at<cv::Vec3b>(32,693);
+    std::cout << "(32,693) -> " << (int)aux2[0] << " " << (int)aux2[1] << " " << (int)aux2[2] << "\n";
     return rgb;
 }
 
@@ -215,9 +242,11 @@ int main (int argc , char* argv[]){
     cv::Mat rgb2 = HSIToRGB(hsi2);
     compareTwoMat<cv::Vec3b>(rgb , image);
     compareTwoMat<cv::Vec3b>(rgb2 , image);
-    cv::imshow("hsi" , rgb);
-    cv::imshow("hsi2" , rgb2);
-    cv::imshow("original" , image);
+    //cv::imshow("hsi" , rgb);
+    //cv::imshow("hsi2" , rgb2);
+    //cv::imwrite("hsi1.png" , rgb);
+    //cv::imwrite("hsi2.png" , rgb2);
+    //cv::imshow("original" , image);
     cv::waitKey();
 
     return 0;
